@@ -1,35 +1,65 @@
 const Book = require('../models/book');
+const fs = require('fs');
 
 exports.createBook = (req, res, next) => {
-    delete req.body._id;
+    const bookObject = JSON.parse(req.body.book); //On transforme la chaine de caractère du corps de la requêt au format JSON, utilisable
+    delete bookObject._id;
+    delete bookObject._userId;
     const bookAdded = new Book({
-        ...req.body
-    })
+        ...bookObject,
+        userId : req.auth.userId,
+        imageUrl : `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+    });
     bookAdded.save()
-        .then(() => res.status(200).json({ message : "Livre ajouté"}))
-        .catch(res.status(400).json({ message : "Erreur dans l'ajout du livre"}));
+        .then(() => res.status(201).json({ message : "Livre ajouté"}))
+        .catch(error => res.status(400).json({ message : "Erreur lors de l'ajout du livre", error : error.message}));
 };
 
 exports.getAllBooks = (req, res, next) => {
     Book.find()
         .then(books => res.status(200).json(books))
-        .catch(res.status(400).json({message : "Erreur dans l'affichage des livres"}));
+        .catch(error => res.status(400).json({message : "Erreur dans l'affichage des livres", error : error.message}));
 };
 
 exports.getOneBook = (req, res, next) => {
     Book.findOne({_id : req.params.id})
         .then(book => res.status(200).json(book))
-        .catch(rse.status(400).jsons({message : "Erreur dans l'affichage du livre"}));
+        .catch(error => res.status(400).json({message : "Erreur dans l'affichage du livre", error : error.message}));
 };
 
 exports.modifyOneBook = (req, res, next) => {
-    Book.updateOne({_id : req.params.id}, {...req.body, _id : req.body.id})
-        .then(() => res.status(200).jsons({message : "Livre modifié"}))
-        .catch(res.status(400).json({message : "Erreur lors de la modification d'un livre"}));
-};
+    const bookObject = req.file ? {
+        ...JSON.parse(req.body.book),
+        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+    } : { ...req.body };
+  
+    delete bookObject._userId;
+    Book.findOne({_id: req.params.id})
+        .then((book) => {
+            if (book.userId != req.auth.userId) {
+                res.status(401).json({ message : 'Unauthorized'});
+            } else {
+                Book.updateOne({ _id: req.params.id}, { ...bookObject, _id: req.params.id})
+                .then(() => res.status(200).json({message : 'Objet modifié'}))
+                .catch(error => res.status(401).json({ error }));
+            }
+        })
+        .catch(error => res.status(400).json({message : "Erreur lors de la modification du livre", error : error.message}));
+ };
 
 exports.deleteOneBook = (req, res, next) => {
-    Book.deleteOne({_id : req.params.id})
-        .then(res.status(200).json({message : "Livre supprimé"}))
-        .catch(res.status(400).jsons({message : "Erreur lors de la suppression du livre"}));
+    Book.findOne({_id : req.params.id})
+        .then(book => {
+            if (book.userId != req.auth.userId) {
+                res.status(401).json({message : "Unauthorized"})
+            } else {
+                const filename = book.imageUrl.split('/images/')[1];
+                fs.unlink(`images/${filename}`, () => {
+                    Book.deleteOne({_id : req.params.id})
+                    .then(() => res.status(200).json({message : "Livre supprimé"}))
+                    .catch(error => res.status(400).json({message : "Erreur lors de la suppression du livre", error : error.message}));
+                })
+            }
+        })
+        .catch(error => res.status(400).json({message : "Erreur lors de la suppression du livre", error : error.message}));   
 };
