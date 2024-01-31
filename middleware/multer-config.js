@@ -1,32 +1,35 @@
 const multer = require('multer');
 const sharp = require('sharp');
 
-const MIME_TYPES = {
-  'image/jpg': 'jpg',
-  'image/jpeg': 'jpg',
-  'image/png': 'png'
+// Configuration de multer pour sauvegarder l'image dans un buffer afin de ne pas enregistrer l'image originale.
+const upload = multer({storage: multer.memoryStorage()})
+
+async function processImage (req, res, next,) {
+  try {
+      // On vérifie si un fichier a été téléchargé
+      if (!req.file) {
+          return res.status(400).send('Aucune image téléchargée.');
+      }
+
+      // On créé le nom de fichier pour la version redimensionnée et on désigne le chemin de la sauvegarde
+      const cleanedOriginalName = req.file.originalname.replace(/\s+/g, '_'); // Remplace les espaces par des underscores
+      const resizedImageName = cleanedOriginalName.replace(/\.(jpg|jpeg|png)$/i, Date.now() + '_resized.webp');
+      const imagePath = 'images/' + resizedImageName;
+
+      // On redimensionne l'image en format WebP avec Sharp
+      const resizedImage = await sharp(req.file.buffer)
+        .resize(300) // Redimensionner l'image à une largeur de 300 pixels
+        .webp({ quality: 80 }) // Convertir l'image en format WebP avec une qualité de 80
+        .toFile(imagePath)
+
+      // On sauvegarde le chemin de l'image pour le récupérer dans le controlleur ensuite
+      res.locals.imagePath = imagePath;
+
+    } catch (error) {
+      console.error('Erreur lors du traitement de l\'image :', error);
+      res.status(500).send('Une erreur s\'est produite lors du traitement de l\'image.');
+    }
+    next();
 };
 
-// Middleware pour la destination de stockage et la génération d'un om de fichier unique
-const storage = multer.diskStorage({
-  destination: (req, file, callback) => {
-    callback(null, 'images');
-  },
-  filename: (req, file, callback) => {
-    const name = file.originalname.split(' ').join('_');
-    // const extension = MIME_TYPES[file.mimetype];
-    callback(null, name + Date.now());
-  }
-});
-
-// Middleare pour optimiser l'image uploadée au format webp
-async function processImage (req, res, next){
-  try {
-    const finalName = `${req.file.filename}.webp`;    
-    await sharp(req.file.path).webp({quality : 20}).toFile("./images/" + finalName);
-  }
-  catch (error) {
-    res.status(500).json({ error: 'Erreur lors du traitement de l\'image' });
-}};
-
-module.exports = {upload : multer({storage: storage}).single('image'), processImage : processImage} ;
+module.exports = [upload.single('image'), processImage ];

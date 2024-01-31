@@ -8,8 +8,9 @@ exports.createBook = (req, res, next) => {
     const bookAdded = new Book({
         ...bookObject,
         userId : req.auth.userId,
-        imageUrl : `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+        imageUrl : `${req.protocol}://${req.get('host')}/${res.locals.imagePath}`
     });
+    console.log(bookAdded);
     bookAdded.save()
         .then(() => res.status(201).json({ message : "Livre ajouté"}))
         .catch(error => res.status(400).json({ message : "Erreur lors de l'ajout du livre", error : error.message}));
@@ -30,7 +31,7 @@ exports.getOneBook = (req, res, next) => {
 exports.modifyOneBook = (req, res, next) => {
     const bookObject = req.file ? {
         ...JSON.parse(req.body.book),
-        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`
+        imageUrl : `${req.protocol}://${req.get('host')}/${res.locals.imagePath}`
     } : { ...req.body };
   
     delete bookObject._userId;
