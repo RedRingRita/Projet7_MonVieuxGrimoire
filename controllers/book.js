@@ -10,11 +10,26 @@ exports.createBook = (req, res, next) => {
         userId : req.auth.userId,
         imageUrl : `${req.protocol}://${req.get('host')}/${res.locals.imagePath}`
     });
-    console.log(bookAdded);
     bookAdded.save()
-        .then(() => res.status(201).json({ message : "Livre ajouté"}))
-        .catch(error => res.status(400).json({ message : "Erreur lors de l'ajout du livre", error : error.message}));
+        .then(() => res.status(201).json({message : "Livre ajouté"}))
+        .catch(error => res.status(400).json({message : "Erreur lors de l'ajout du livre", error : error.message}));
 };
+
+exports.rateOneBook = (req, res, next) => {
+    Book.findOne({_id: req.params.id})
+        .then((book) => {
+            if (book.userId === req.auth.userId) {
+                res.status(401).json({ message : 'Unauthorized'});
+            } else {
+                console.log(req.body);
+                book.ratings.push({userId : req.auth.userId, grade : req.body.rating})
+                book.save()
+                .then(() => res.status(200).json({message : 'Note ajoutée'}))
+                .catch(error => res.status(401).json({error}));
+            }
+        })
+        .catch(error => res.status(400).json({error}));
+}
 
 exports.getAllBooks = (req, res, next) => {
     Book.find()
@@ -34,7 +49,7 @@ exports.modifyOneBook = (req, res, next) => {
         imageUrl : `${req.protocol}://${req.get('host')}/${res.locals.imagePath}`
     } : { ...req.body };
   
-    delete bookObject._userId;
+    delete bookObject._userId; // On supprime le champs _userId envoyé par le client pour éviter de changer son propriétaire.
     Book.findOne({_id: req.params.id})
         .then((book) => {
             if (book.userId != req.auth.userId) {

@@ -22,7 +22,7 @@ async function processImage (req, res, next,) {
         .webp({ quality: 80 }) // Convertir l'image en format WebP avec une qualité de 80
         .toFile(imagePath)
 
-      // On sauvegarde le chemin de l'image pour le récupérer dans le controlleur ensuite
+      // On sauvegarde le chemin de l'image dans une variable locale pour le récupérer dans le controlleur ensuite
       res.locals.imagePath = imagePath;
 
     } catch (error) {

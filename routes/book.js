@@ -6,6 +6,7 @@ const multerSharp = require('../middleware/multer-config');
 const router = express.Router();
 
 router.post('/', auth, multerSharp, bookCtrl.createBook);
+router.post('/:id/rating', auth, bookCtrl.rateOneBook);
 router.get('/', bookCtrl.getAllBooks);
 router.get('/:id', bookCtrl.getOneBook);
 router.put('/:id', auth, multerSharp, bookCtrl.modifyOneBook);
