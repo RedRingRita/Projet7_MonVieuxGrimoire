@@ -21,10 +21,19 @@ exports.rateOneBook = (req, res, next) => {
             if (book.userId === req.auth.userId) {
                 res.status(401).json({ message : 'Unauthorized'});
             } else {
-                console.log(req.body);
-                book.ratings.push({userId : req.auth.userId, grade : req.body.rating})
+                book.ratings.push({userId : req.auth.userId, grade : req.body.rating});
+                let totalRating = 0;
+                for (let i = 0; i < book.ratings.length; i++){
+                    totalRating = totalRating + book.ratings[i].grade;
+                };
+                const averageRatingCalc = totalRating / book.ratings.length;
+                console.log(averageRatingCalc);
+                book.averageRating = Math.round(averageRatingCalc * 100) / 100;
+                console.log("-- j'arrive ici --")
                 book.save()
-                .then(() => res.status(200).json({message : 'Note ajoutée'}))
+                .then((book) => {console.log(book)
+                    return res.status(200).json(book)
+                })
                 .catch(error => res.status(401).json({error}));
             }
         })
@@ -42,6 +51,15 @@ exports.getOneBook = (req, res, next) => {
         .then(book => res.status(200).json(book))
         .catch(error => res.status(400).json({message : "Erreur dans l'affichage du livre", error : error.message}));
 };
+
+exports.bestRating = (req, res ,next) => {
+    Book.find()
+        .sort({ averageRating: -1 }) // On trie les livres par note moyenne décroissante
+        .limit(3) // On liimite les résultats aux 3 premiers livres
+        .then((topRatedBooks) => {res.status(200).json(topRatedBooks); // Retourner les 3 livres les mieux notés
+        })
+        .catch(error => res.status(400).json({message : "Erreur dans l'affichage des livres", error : error.message}));
+}
 
 exports.modifyOneBook = (req, res, next) => {
     const bookObject = req.file ? {

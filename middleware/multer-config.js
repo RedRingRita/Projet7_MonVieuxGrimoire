@@ -12,15 +12,15 @@ async function processImage (req, res, next,) {
       }
 
       // On créé le nom de fichier pour la version redimensionnée et on désigne le chemin de la sauvegarde
-      const cleanedOriginalName = req.file.originalname.replace(/\s+/g, '_'); // Remplace les espaces par des underscores
+      const cleanedOriginalName = req.file.originalname.replace(/\s+/g, '_'); // On remplace les espaces par des underscores
       const resizedImageName = cleanedOriginalName.replace(/\.(jpg|jpeg|png)$/i, Date.now() + '_resized.webp');
       const imagePath = 'images/' + resizedImageName;
 
       // On redimensionne l'image en format WebP avec Sharp
       const resizedImage = await sharp(req.file.buffer)
-        .resize(300) // Redimensionner l'image à une largeur de 300 pixels
-        .webp({ quality: 80 }) // Convertir l'image en format WebP avec une qualité de 80
-        .toFile(imagePath)
+        .resize(300) // On redimensionne l'image à une largeur de 300 pixels
+        .webp({ quality: 80 }) // On converti l'image en format WebP avec une qualité de 80
+        .toFile(imagePath) // On enregistre
 
       // On sauvegarde le chemin de l'image dans une variable locale pour le récupérer dans le controlleur ensuite
       res.locals.imagePath = imagePath;
