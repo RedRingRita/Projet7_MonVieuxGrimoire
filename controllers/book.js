@@ -27,11 +27,9 @@ exports.rateOneBook = (req, res, next) => {
                     totalRating = totalRating + book.ratings[i].grade;
                 };
                 const averageRatingCalc = totalRating / book.ratings.length;
-                console.log(averageRatingCalc);
                 book.averageRating = Math.round(averageRatingCalc * 100) / 100;
-                console.log("-- j'arrive ici --")
                 book.save()
-                .then((book) => {console.log(book)
+                .then((book) => {
                     return res.status(200).json(book)
                 })
                 .catch(error => res.status(401).json({error}));
@@ -49,33 +47,37 @@ exports.getAllBooks = (req, res, next) => {
 exports.getOneBook = (req, res, next) => {
     Book.findOne({_id : req.params.id})
         .then(book => res.status(200).json(book))
-        .catch(error => res.status(400).json({message : "Erreur dans l'affichage du livre", error : error.message}));
+        .catch(error => res.status(400).json({message : "Erreur dans l'affichage du livre solitaire", error : error.message}));
 };
 
 exports.bestRating = (req, res ,next) => {
     Book.find()
-        .sort({ averageRating: -1 }) // On trie les livres par note moyenne décroissante
-        .limit(3) // On liimite les résultats aux 3 premiers livres
-        .then((topRatedBooks) => {res.status(200).json(topRatedBooks); // Retourner les 3 livres les mieux notés
+        .sort({averageRating : -1}) // On trie les livres par note moyenne décroissante
+        .limit(3) // On limite le résultat aux 3 premiers livres
+        .then(topRatedBooks =>  {res.status(200).json(topRatedBooks); // Retourner les 3 livres les mieux notés
         })
-        .catch(error => res.status(400).json({message : "Erreur dans l'affichage des livres", error : error.message}));
+        .catch(error => res.status(400).json({message : "Erreur dans l'affichage des meilleurs livres", error : error.message}));
 }
 
 exports.modifyOneBook = (req, res, next) => {
     const bookObject = req.file ? {
         ...JSON.parse(req.body.book),
         imageUrl : `${req.protocol}://${req.get('host')}/${res.locals.imagePath}`
-    } : { ...req.body };
+    } : {...req.body}; //S'il y a un champs file on récupère l'objet en chaine de caractere et en recréant l'URL, sinon on récupère l'objet simplement
   
     delete bookObject._userId; // On supprime le champs _userId envoyé par le client pour éviter de changer son propriétaire.
-    Book.findOne({_id: req.params.id})
+    Book.findOne({_id : req.params.id},)
         .then((book) => {
             if (book.userId != req.auth.userId) {
                 res.status(401).json({ message : 'Unauthorized'});
             } else {
-                Book.updateOne({ _id: req.params.id}, { ...bookObject, _id: req.params.id})
-                .then(() => res.status(200).json({message : 'Objet modifié'}))
-                .catch(error => res.status(401).json({ error }));
+                const filename = book.imageUrl.split('/images/')[1];
+                console.log(book.imageUrl)
+                fs.unlink(`images/${filename}`, () => {                    
+                    Book.updateOne({ _id : req.params.id}, { ...bookObject, _id : req.params.id})
+                    .then(() => res.status(200).json({message : 'Objet modifié'}))
+                    .catch(error => res.status(401).json({error}));
+                });
             }
         })
         .catch(error => res.status(400).json({message : "Erreur lors de la modification du livre", error : error.message}));
@@ -87,7 +89,7 @@ exports.deleteOneBook = (req, res, next) => {
             if (book.userId != req.auth.userId) {
                 res.status(401).json({message : "Unauthorized"})
             } else {
-                const filename = book.imageUrl.split('/images/')[1];
+                const filename = book.imageUrl.split('/images/')[1]; // Divise la chaine de caractères en un tableau de sous chaine en fonction du séparateur '/images/'
                 fs.unlink(`images/${filename}`, () => {
                     Book.deleteOne({_id : req.params.id})
                     .then(() => res.status(200).json({message : "Livre supprimé"}))
