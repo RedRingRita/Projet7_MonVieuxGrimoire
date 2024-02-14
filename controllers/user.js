@@ -30,7 +30,7 @@ exports.login = (req, res, next) => {
                     }
                     res.status(200).json({
                         userId : user._id, /*_id est créé par la BDD lors du POST au user*/
-                        token : jwt.sign(
+                        token : jwt.sign( // Création d'un token durant 24h lors du login
                             { userId: user._id },
                             process.env.RANDOM_TOKEN_KEY,
                             { expiresIn: '24h' }

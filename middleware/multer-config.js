@@ -1,6 +1,5 @@
 const multer = require('multer');
 const sharp = require('sharp');
-const fs = require('fs');
 
 // Configuration de multer pour sauvegarder l'image dans un buffer afin de ne pas enregistrer l'image originale.
 const upload = multer({storage: multer.memoryStorage()})

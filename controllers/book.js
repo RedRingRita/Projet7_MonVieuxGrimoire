@@ -21,7 +21,7 @@ exports.rateOneBook = (req, res, next) => {
             if (book.userId === req.auth.userId) {
                 res.status(401).json({ message : 'Unauthorized'});
             } else {
-                book.ratings.push({userId : req.auth.userId, grade : req.body.rating});
+                book.ratings.push({userId : req.auth.userId, grade : req.body.rating}); // Ajoute un élément à la fin du tableau.
                 let totalRating = 0;
                 for (let i = 0; i < book.ratings.length; i++){
                     totalRating = totalRating + book.ratings[i].grade;
@@ -72,7 +72,6 @@ exports.modifyOneBook = (req, res, next) => {
                 res.status(401).json({ message : 'Unauthorized'});
             } else {
                 const filename = book.imageUrl.split('/images/')[1];
-                console.log(book.imageUrl)
                 fs.unlink(`images/${filename}`, () => {                    
                     Book.updateOne({ _id : req.params.id}, { ...bookObject, _id : req.params.id})
                     .then(() => res.status(200).json({message : 'Objet modifié'}))
